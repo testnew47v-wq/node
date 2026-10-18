@@ -1,0 +1,6 @@
+user name
+testnew47v_db_user
+password
+fom9NQMek6Lr5BrC
+
+mongodb+srv://<db_username>:fom9NQMek6Lr5BrC@cluster0.dkqbpth.mongodb.net/?appName=Cluster0

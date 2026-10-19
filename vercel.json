@@ -6,6 +6,11 @@
       "use": "@vercel/node"
     }
   ],
+  "functions": {
+    "src/server.js": {
+      "maxDuration": 120
+    }
+  },
   "headers": [
     {
       "source": "/(.*)",
@@ -24,3 +29,4 @@
     }
   ]
 }
+

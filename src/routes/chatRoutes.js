@@ -1,11 +1,10 @@
-﻿// api-gateway-node/src/routes/chatRoutes.js
 const express = require('express');
 const axios = require('axios');
 const router = express.Router();
 
-// FastAPI URL (Environment variable se ya direct)
-const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'neonutricare-secret-key-123';
+// Sahi variable name (AI_ENGINE_URL) jo Vercel par set hai
+const FASTAPI_URL = process.env.AI_ENGINE_URL || 'https://neonutricarefastapi-1.onrender.com';
+const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'neonutricare_secret_dev_key_2026';
 
 router.post('/ask', async (req, res) => {
     try {

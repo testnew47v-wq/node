@@ -1,42 +1,51 @@
-// api-gateway-node/src/routes/chatRoutes.js
+﻿// api-gateway-node/src/routes/chatRoutes.js
 const express = require('express');
 const axios = require('axios');
+const verifyFirebaseToken = require('../middlewares/auth');
+const { mapAiEngineError } = require('../utils/aiEngineError');
+
 const router = express.Router();
 
-// FastAPI URL (Environment variable se ya direct)
-const FASTAPI_URL = process.env.FASTAPI_URL || 'http://127.0.0.1:8000';
-const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'neonutricare-secret-key-123';
+// The RAG answer takes ~10s normally; allow extra time for a cold start
+// of the (free-tier) AI engine.
+const AI_ENGINE_TIMEOUT_MS = 100000;
 
-router.post('/ask', async (req, res) => {
+// Protected: only logged-in users can spend the Gemini quota.
+router.post('/ask', verifyFirebaseToken, async (req, res) => {
+    const { query } = req.body || {};
+
+    if (!query || typeof query !== 'string' || !query.trim()) {
+        return res.status(400).json({ success: false, message: 'Query is required' });
+    }
+
+    // Same variables as the prediction controller. No hardcoded fallbacks:
+    // a missing variable must fail loudly instead of calling localhost.
+    if (!process.env.AI_ENGINE_URL || !process.env.INTERNAL_API_KEY) {
+        console.error('[Chat] AI_ENGINE_URL or INTERNAL_API_KEY is not set on this deployment.');
+        return res.status(500).json({
+            success: false,
+            message: 'Server is not configured to reach the AI engine.'
+        });
+    }
+
     try {
-        const { query } = req.body;
-
-        if (!query) {
-            return res.status(400).json({ success: false, message: 'Query is required' });
-        }
-
-        // FastAPI ko request bhejna
         const response = await axios.post(
-            `${FASTAPI_URL}/api/v1/chat/ask`,
-            { query: query },
+            `${process.env.AI_ENGINE_URL}/api/v1/chat/ask`,
+            { query: query.trim() },
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Internal-Api-Key': INTERNAL_API_KEY
-                }
+                    'X-Internal-Api-Key': process.env.INTERNAL_API_KEY
+                },
+                timeout: AI_ENGINE_TIMEOUT_MS
             }
         );
 
-        // FastAPI ka result wapas Flutter ko bhejna
-        res.status(200).json(response.data);
-
+        // Pass the FastAPI result (answer + sources) straight to Flutter.
+        return res.status(200).json(response.data);
     } catch (error) {
-        console.error("Chat API error:", error.message);
-        res.status(500).json({
-            success: false,
-            message: "Failed to connect to AI Assistant.",
-            error: error.response?.data || error.message
-        });
+        const { status, message } = mapAiEngineError(error, 'Chat');
+        return res.status(status).json({ success: false, message });
     }
 });
 

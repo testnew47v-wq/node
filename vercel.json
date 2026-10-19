@@ -8,7 +8,7 @@
   ],
   "functions": {
     "src/server.js": {
-      "maxDuration": 120
+      "maxDuration": 60
     }
   },
   "headers": [

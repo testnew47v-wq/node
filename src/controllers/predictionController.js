@@ -1,4 +1,4 @@
-﻿const axios = require('axios');
+const axios = require('axios');
 const PredictionRecord = require('../models/PredictionRecord');
 const { mapAiEngineError } = require('../utils/aiEngineError');
 
@@ -9,30 +9,29 @@ exports.predictMalnutritionRisk = async (req, res) => {
     const payload = req.body;
     const userId = req.user.uid; // from the verified Firebase token
 
-    if (!process.env.AI_ENGINE_URL || !process.env.INTERNAL_API_KEY) {
-        console.error('[Prediction Controller] AI_ENGINE_URL or INTERNAL_API_KEY is not set on this deployment.');
-        return res.status(500).json({
-            success: false,
-            message: 'Server is not configured to reach the AI engine.'
-        });
-    }
+    // ==========================================
+    // BULLETPROOF FALLBACKS (Render Link)
+    // ==========================================
+    const AI_ENGINE_URL = process.env.AI_ENGINE_URL || 'https://neonutricarefastapi-1.onrender.com';
+    const INTERNAL_API_KEY = process.env.INTERNAL_API_KEY || 'neonutricare_secret_dev_key_2026';
 
     // 1. Ask the FastAPI engine for a prediction
     let aiResult;
     try {
         const response = await axios.post(
-            `${process.env.AI_ENGINE_URL}/api/v1/predict`,
+            `${AI_ENGINE_URL}/api/v1/predict`,
             payload,
             {
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-Internal-Api-Key': process.env.INTERNAL_API_KEY
+                    'X-Internal-Api-Key': INTERNAL_API_KEY
                 },
                 timeout: AI_ENGINE_TIMEOUT_MS
             }
         );
         aiResult = response.data;
     } catch (error) {
+        console.error('[Prediction Controller] Axios Error:', error.message);
         const { status, message } = mapAiEngineError(error, 'Prediction Controller');
         return res.status(status).json({ success: false, message });
     }
